@@ -48,7 +48,21 @@ document.addEventListener('DOMContentLoaded',()=>{
   function bindModals(){document.querySelectorAll('[data-open]').forEach(button=>button.addEventListener('click',()=>{const modal=document.querySelector('#'+button.dataset.open);if(modal){modal.hidden=false;fillStaffSelects();if(window.lucide)window.lucide.createIcons()}}))}
   function fillStaffSelects(){const options=get('westbrook_staff').map(staff=>`<option>${escapeHtml(staff.name)}</option>`).join('');['leave-staff','conduct-staff','termination-staff'].forEach(id=>{const select=document.querySelector('#'+id);if(select)select.innerHTML=options})}
   function bindForms(){
-    bind(document.querySelector('#staff-form'),data=>{const staff=get('westbrook_staff'),accounts=get('westbrook_accounts');const file=document.querySelector('#staff-form input[name="photo"]')?.files?.[0];const finish=photo=>{staff.unshift({id:'staff'+Date.now(),name:data.get('name'),employeeNumber:data.get('employeeNumber'),role:data.get('role'),department:data.get('department'),email:data.get('email'),status:data.get('status'),notes:data.get('notes'),directory:data.get('directory'),bio:data.get('bio'),photo});accounts.unshift({id:'account'+Date.now(),name:data.get('name'),username:data.get('username'),password:data.get('password'),role:'Staff member',permissions:['view_staff']});set('westbrook_staff',staff);set('westbrook_accounts',accounts);syncStaffDirectory(staff)};if(file){const reader=new FileReader();reader.onload=()=>finish(reader.result);reader.readAsDataURL(file)}else finish('')});
+    bind(document.querySelector('#staff-form'),data=>{
+      const staff=get('westbrook_staff'),accounts=get('westbrook_accounts');
+      const file=document.querySelector('#staff-form input[name="photo"]')?.files?.[0];
+      const finish=photo=>{
+        const username=String(data.get('username')||'').trim().toLowerCase();
+        const password=String(data.get('password')||'');
+        if(!username||!password){alert('A username and password are required to create the staff account.');return}
+        if(accounts.some(account=>String(account.username||'').trim().toLowerCase()===username)){alert('That username is already in use. Choose a unique username.');return}
+        const profileId='staff'+Date.now();
+        staff.unshift({id:profileId,name:data.get('name'),employeeNumber:data.get('employeeNumber'),role:data.get('role'),department:data.get('department'),email:data.get('email'),status:data.get('status'),notes:data.get('notes'),directory:data.get('directory'),bio:data.get('bio'),photo});
+        accounts.unshift({id:'account'+Date.now(),name:data.get('name'),username,password,role:'Staff member',permissions:['view_staff']});
+        set('westbrook_staff',staff);set('westbrook_accounts',accounts);syncStaffDirectory(staff);render();
+      };
+      if(file){const reader=new FileReader();reader.onload=()=>finish(reader.result);reader.readAsDataURL(file)}else finish('');
+    });
     bind(document.querySelector('#leave-form'),data=>{const leave=get('westbrook_leave');leave.unshift({id:'leave'+Date.now(),staff:data.get('staff'),type:data.get('type'),start:data.get('start'),end:data.get('end'),status:data.get('status')});set('westbrook_leave',leave)});
     bind(document.querySelector('#conduct-form'),data=>{const conduct=get('westbrook_conduct');conduct.unshift({id:'conduct'+Date.now(),staff:data.get('staff'),type:data.get('type'),details:data.get('details'),date:new Date().toISOString().slice(0,10),status:data.get('status')});set('westbrook_conduct',conduct)});
     bind(document.querySelector('#termination-form'),data=>{const termination=get('westbrook_termination');termination.unshift({id:'term'+Date.now(),staff:data.get('staff'),date:data.get('date'),process:data.get('process'),reason:data.get('reason'),status:data.get('status')});set('westbrook_termination',termination)});
